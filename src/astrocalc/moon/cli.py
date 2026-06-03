@@ -1,30 +1,47 @@
+from datetime import date, datetime
+
 import click
+
 from astrocalc.moon.alti import run_alti
-from datetime import datetime
-from zoneinfo import ZoneInfo
+
+
+def _parse_date(date_str: str) -> date:
+    date_parts = date_str.strip().split()
+    if len(date_parts) not in {1, 2}:
+        raise ValueError
+    return datetime.strptime(date_parts[0], "%m/%d/%Y").date()
 
 @click.group()
-def moon():
+def moon() -> None:
     """astrocalc moon subcommand base"""
 
 # Leaf commands for the moon subcommand
 @moon.command("alti")
-@click.argument('target_alti', type=float, metavar="TARGET_ALTITUDE_ANGLE")
-@click.option("--location",            required=True, help="'<city>, <country>' or '<lat>, <lon>' location to calculate for")
-@click.option("--date",    "date_str", required=True, help="mm/dd/yyyy")
+@click.argument("target_alti", type=float, metavar="TARGET_ALTITUDE_ANGLE")
+@click.option(
+    "--location",
+    required=True,
+    help="'<city>, <country>' or '<latitude>, <longitude>' location to calculate for.",
+)
+@click.option(
+    "--date",
+    "date_str",
+    required=True,
+    help="Date in mm/dd/yyyy format, optionally followed by a timezone abbreviation.",
+)
 def alti(target_alti: float, location: str, date_str: str) -> None:
     """Command to calculate when the moon reaches a target altitude"""
-    # Parse the location into latitude/longitude coordinates
-    # TODO
-    parsed_loc = location
-
-    # Parse the date entry into a datetime object
     try:
-        parsed_date = datetime.strptime(datetime_str, "%m/%d/%Y").date()
-        parsed_date_tz = parsed_date.replace(tzinfo=ZoneInfo("
+        parsed_date = _parse_date(date_str)
     except ValueError:
-        raise click.BadParameter("Date must be in mm/dd/yyyy format, e.g., 05/31/2026")
-    # TODO: Catch other exceptions...
+        raise click.BadParameter(
+            "Date must be in mm/dd/yyyy format, e.g., 05/31/2026 or 05/31/2026 CDT",
+            param_hint="--date",
+        ) from None
 
-    result = run_alti(target_alti, parse_loc, parsed_date)
-    print(result)
+    try:
+        result = run_alti(target_alti, location, parsed_date)
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    click.echo(result)

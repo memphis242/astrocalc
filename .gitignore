@@ -26,6 +26,9 @@ venv/
 tags
 .ctags
 
+# Skyfield ephemeris data
+*.bsp
+
 # OS
 .DS_Store
 Thumbs.db
